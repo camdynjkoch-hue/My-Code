@@ -1,0 +1,9 @@
+{
+    "name": "QuicksilverSandevistan",
+    "version_number": "1.0.0",
+    "website_url": "",
+    "description": "Cyberpunk: Edgerunners Sandevistan + Quicksilver. Green world, untinted you, never-fading rainbow afterimages.",
+    "dependencies": [
+        "gnonme-BoneLib-3.1.1"
+    ]
+}
