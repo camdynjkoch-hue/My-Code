@@ -125,7 +125,7 @@ namespace SuperSlowMo
         /// <summary>Changes the world speed while slow-mo is running.</summary>
         public static void SetSpeed(float speed)
         {
-            if (!IsActive || Mathf.Approximately(speed, Speed))
+            if (!IsActive || Math.Abs(speed - Speed) < 0.0001f)
                 return;
 
             float oldSpeed = Speed;

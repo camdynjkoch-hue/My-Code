@@ -47,8 +47,10 @@ The three *Slow …* toggles take effect the next time slow-mo is turned on.
 
 ## Installing
 
-1. Install [MelonLoader 0.6.x](https://melonwiki.xyz) and [BoneLib 3.1.x](https://bonelab.thunderstore.io/package/gnonme/BoneLib/).
-2. Put `SuperSlowMo.dll` in `BONELAB/Mods`.
+1. Install [MelonLoader](https://melonwiki.xyz) 0.6.x or 0.7.x and [BoneLib](https://bonelab.thunderstore.io/package/gnonme/BoneLib/) 3.x.
+2. Put `SuperSlowMo.dll` in `BONELAB/Mods`. A prebuilt copy is in [`dist/SuperSlowMo.dll`](dist/SuperSlowMo.dll).
+
+The prebuilt DLL was compiled without the game installed. It was built against the real MelonLoader, Harmony, Il2CppInterop and BoneLib 3.2.2 DLLs, plus stand-ins for BONELAB's generated assemblies that match their exact signatures. If it logs a `MissingMethodException` on load, build it yourself (below) against your own install.
 
 ## Building
 

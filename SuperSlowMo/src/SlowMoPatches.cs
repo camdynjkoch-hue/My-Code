@@ -31,7 +31,7 @@ namespace SuperSlowMo
         {
             try
             {
-                return Player.RigManager != null && rig.manager == Player.RigManager;
+                return Player.ControllerRig != null && rig == Player.ControllerRig;
             }
             catch
             {

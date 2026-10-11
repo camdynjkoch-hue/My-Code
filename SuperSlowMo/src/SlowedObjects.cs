@@ -1,5 +1,10 @@
+using System;
+using System.Reflection;
+
 using UnityEngine;
 using UnityEngine.AI;
+
+using Object = UnityEngine.Object;
 
 namespace SuperSlowMo
 {
@@ -109,9 +114,19 @@ namespace SuperSlowMo
 
             if (scaleVelocity && speed > 0f && !Rb.isKinematic)
             {
-                Rb.velocity = Vector3.ClampMagnitude(Rb.velocity / speed, maxExitSpeed);
-                Rb.angularVelocity /= speed;
+                Rb.velocity = ClampMagnitude(Rb.velocity * (1f / speed), maxExitSpeed);
+                Rb.angularVelocity *= 1f / speed;
             }
+        }
+
+        private static Vector3 ClampMagnitude(Vector3 v, float max)
+        {
+            float sqrMagnitude = v.x * v.x + v.y * v.y + v.z * v.z;
+
+            if (sqrMagnitude <= max * max)
+                return v;
+
+            return v * (max / (float)Math.Sqrt(sqrMagnitude));
         }
 
         private void ApplyDrag(float speed)
@@ -300,15 +315,22 @@ namespace SuperSlowMo
             _particles = particles;
         }
 
+        // ParticleSystem.MainModule is reached through reflection so this works whether the Il2Cpp
+        // wrapper generated it as a struct or a class
+        private static PropertyInfo _mainProperty;
+        private static PropertyInfo _simulationSpeedProperty;
+
         private float SimulationSpeed
         {
-            get => _particles.main.simulationSpeed;
-            set
-            {
-                var main = _particles.main;
-                main.simulationSpeed = value;
-            }
+            get => (float)SimulationSpeedProperty.GetValue(Main);
+            set => SimulationSpeedProperty.SetValue(Main, value);
         }
+
+        private object Main => MainProperty.GetValue(_particles);
+
+        private static PropertyInfo MainProperty => _mainProperty ??= typeof(ParticleSystem).GetProperty("main");
+
+        private static PropertyInfo SimulationSpeedProperty => _simulationSpeedProperty ??= MainProperty.PropertyType.GetProperty("simulationSpeed");
 
         public override void Sync(float speed)
         {
