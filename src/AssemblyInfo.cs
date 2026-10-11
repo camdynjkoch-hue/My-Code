@@ -10,3 +10,4 @@ using Quicksilver;
 [assembly: MelonInfo(typeof(QuicksilverMod), "Quicksilver Sandevistan", QuicksilverMod.Version, "Lakatrazz (Quicksilver), Sandevistan add-on (SandevistanFX effects)")]
 [assembly: MelonGame("Stress Level Zero", "BONELAB")]
 [assembly: MelonAdditionalDependencies("BoneLib")]
+[assembly: HarmonyDontPatchAll]

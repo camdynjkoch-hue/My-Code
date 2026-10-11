@@ -54,6 +54,8 @@ namespace Quicksilver
         {
             Instance = this;
 
+            ApplyPatches();
+
             Effects = new EffectsController();
 
             Hooking.OnLevelLoaded += OnLevelLoaded;
@@ -66,6 +68,34 @@ namespace Quicksilver
             SetupBoneMenu();
 
             LoggerInstance.Msg("Loaded. Hit slow-mo to go Sandevistan.");
+        }
+
+        /// <summary>
+        /// Applies each patch class on its own, so one that doesn't match the installed game version is logged and
+        /// skipped instead of stopping the rest (see HarmonyDontPatchAll in AssemblyInfo).
+        /// </summary>
+        private void ApplyPatches()
+        {
+            int failed = 0;
+
+            foreach (var type in typeof(QuicksilverMod).Assembly.GetTypes())
+            {
+                if (type.IsNested || type.Namespace != "Quicksilver.Patching")
+                    continue;
+
+                try
+                {
+                    HarmonyInstance.CreateClassProcessor(type).Patch();
+                }
+                catch (Exception e)
+                {
+                    failed++;
+                    LoggerInstance.Warning($"Couldn't apply {type.Name}: {e.Message}");
+                }
+            }
+
+            if (failed > 0)
+                LoggerInstance.Warning($"{failed} patch group(s) failed; the rest of the mod still works.");
         }
 
         public static void SetupMelonPrefs()
@@ -183,7 +213,27 @@ namespace Quicksilver
             return rigManager != null && !rigManager.WasCollected;
         }
 
+        private bool _movementUnavailable;
+
         public override void OnFixedUpdate()
+        {
+            if (_movementUnavailable)
+                return;
+
+            try
+            {
+                UpdateMovement();
+            }
+            catch (Exception e) when (e is MissingMemberException || e is TypeLoadException)
+            {
+                // The installed game version doesn't match what Quicksilver expects. Keep the rest of the mod running.
+                _movementUnavailable = true;
+                LoggerInstance.Error("Quicksilver movement isn't compatible with this game version and was turned off: " + e.Message);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void UpdateMovement()
         {
             float timeScale = Time.timeScale;
 

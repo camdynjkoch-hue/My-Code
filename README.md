@@ -79,7 +79,9 @@ Everything is in BoneMenu → *Quicksilver Sandevistan*, and saved in `UserData/
 
 1. Install [MelonLoader 0.6.x](https://melonwiki.xyz) and [BoneLib 3.1.x](https://bonelab.thunderstore.io/package/gnonme/BoneLib/).
 2. **Remove `Quicksilver.dll` and `SandevistanFX.dll`** from `BONELAB/Mods` if you have them. This mod already contains both, and running them together would patch everything twice and draw two sets of effects.
-3. Put `QuicksilverSandevistan.dll` in `BONELAB/Mods`.
+3. Put `QuicksilverSandevistan.dll` in `BONELAB/Mods`. A prebuilt copy is in [`release/`](release/QuicksilverSandevistan.dll); it needs MelonLoader 0.6+ and BoneLib 3.0+.
+
+If the MelonLoader log says a Quicksilver patch group couldn't be applied, or that Quicksilver movement was turned off, your game version doesn't match that part of Quicksilver. The Sandevistan slow-mo and effects keep working.
 
 ## Building
 
