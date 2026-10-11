@@ -1,8 +1,8 @@
 {
     "name": "QuicksilverSandevistan",
-    "version_number": "1.0.0",
+    "version_number": "2.0.0",
     "website_url": "",
-    "description": "Cyberpunk: Edgerunners Sandevistan + Quicksilver. Green world, untinted you, never-fading rainbow afterimages.",
+    "description": "Replaces BONELAB's slow-mo with a Cyberpunk: Edgerunners Sandevistan. The world slows, you don't. Green grade, activation flash, rainbow afterimages.",
     "dependencies": [
         "gnonme-BoneLib-3.1.1"
     ]

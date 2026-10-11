@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -18,9 +19,12 @@ namespace Quicksilver
 {
     public class QuicksilverMod : MelonMod
     {
-        public const string Version = "1.0.0";
+        public const string Version = "2.0.0";
 
         public static QuicksilverMod Instance { get; private set; }
+
+        /// <summary>The Sandevistan's visual effects (green grade, flash, afterimages).</summary>
+        public static EffectsController Effects { get; private set; }
 
         public static bool IsEnabled { get; private set; }
 
@@ -50,10 +54,18 @@ namespace Quicksilver
         {
             Instance = this;
 
+            Effects = new EffectsController();
+
             Hooking.OnLevelLoaded += OnLevelLoaded;
+            Hooking.OnLevelUnloaded += delegate { OnLevelUnloaded(); };
+            Hooking.OnSwitchAvatarPostfix += delegate { Effects.OnAvatarChanged(); };
+            Hooking.OnGrabObject += delegate { Effects.RequestRescan(); };
+            Hooking.OnReleaseObject += delegate { Effects.RequestRescan(); };
 
             SetupMelonPrefs();
             SetupBoneMenu();
+
+            LoggerInstance.Msg("Loaded. Hit slow-mo to go Sandevistan.");
         }
 
         public static void SetupMelonPrefs()
@@ -73,7 +85,14 @@ namespace Quicksilver
             BoneMenuPage = Page.Root.CreatePage("Quicksilver Sandevistan", new Color(0.75f, 0.75f, 0.75f), 0, true);
             BoneMenuEnabledElement = BoneMenuPage.CreateBool("Quicksilver Movement", Color.yellow, IsEnabled, OnSetEnabled);
 
-            SandevistanSettings.SetupBoneMenu(BoneMenuPage);
+            try
+            {
+                SandevistanMenu.Create(BoneMenuPage, Effects);
+            }
+            catch (Exception e)
+            {
+                MelonLogger.Warning("Sandevistan BoneMenu could not be created (settings still work through MelonPreferences.cfg): " + e.Message);
+            }
         }
 
         public static void OnSetEnabled(bool value)
@@ -94,19 +113,44 @@ namespace Quicksilver
 
         public override void OnUpdate()
         {
-            SandevistanController.OnUpdate();
+            SandevistanTime.OnUpdate();
+
+            try
+            {
+                Effects.Update();
+            }
+            catch (Exception e)
+            {
+                FxLog.Error("Update", e);
+            }
         }
 
         public override void OnLateUpdate()
         {
-            SandevistanController.OnLateUpdate();
+            SandevistanTime.OnLateUpdate();
+
+            try
+            {
+                Effects.LateUpdate();
+            }
+            catch (Exception e)
+            {
+                FxLog.Error("LateUpdate", e);
+            }
+        }
+
+        public void OnLevelUnloaded()
+        {
+            SandevistanTime.Deactivate();
+            Effects.OnLevelUnloaded();
         }
 
         public void OnLevelLoaded(LevelInfo info)
         {
-            // Make sure nothing from a previous level (afterimages, color correction, slowed time) survives the load
+            // Make sure the slowed time from a previous level doesn't survive the load
             // before Quicksilver reads the new level's time scale.
-            SandevistanController.Deactivate();
+            SandevistanTime.Deactivate();
+            Effects.OnLevelLoaded();
 
             rigManager = Player.RigManager;
 

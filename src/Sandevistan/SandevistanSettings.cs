@@ -1,91 +1,152 @@
-using BoneLib.BoneMenu;
-
 using MelonLoader;
 
 using UnityEngine;
 
 namespace Quicksilver.Sandevistan
 {
+    /// <summary>
+    /// Sandevistan preferences. Slow-motion settings live under [Sandevistan]; the visual effect settings live under
+    /// [SandevistanFX] so an existing SandevistanFX config carries over.
+    /// </summary>
     public static class SandevistanSettings
     {
-        public static readonly Color MenuColor = new Color(0.3f, 1f, 0.45f);
+        private const int CurrentConfigVersion = 3;
 
-        public static MelonPreferences_Category Category { get; private set; }
+        public const float DefaultHueSpeed = 0.2f;
+        public const int DefaultMaxCount = 50;
+        public const float DefaultLifetime = 3f;
+        public const int MaxCountLimit = 100;
 
-        private static MelonPreferences_Entry<float> _timeScale;
-        private static MelonPreferences_Entry<float> _greenIntensity;
-        private static MelonPreferences_Entry<float> _afterimageInterval;
-        private static MelonPreferences_Entry<float> _afterimageSpacing;
-        private static MelonPreferences_Entry<float> _afterimageOpacity;
-        private static MelonPreferences_Entry<float> _hueCycleSpeed;
-        private static MelonPreferences_Entry<int> _maxAfterimages;
-        private static MelonPreferences_Entry<bool> _thumbstickActivation;
+        private static readonly Color DefaultGradeColor = new Color(0.24f, 1f, 0.45f, 1f);
 
-        /// <summary>Time scale while the Sandevistan is running (0.25 = 4x slower).</summary>
-        public static float TimeScale => Mathf.Clamp(_timeScale.Value, 0.05f, 0.95f);
+        private static MelonPreferences_Category _timeCategory;
+        private static MelonPreferences_Category _fxCategory;
 
-        /// <summary>0 = no tint, 1 = strongest green color correction.</summary>
-        public static float GreenIntensity => Mathf.Clamp01(_greenIntensity.Value);
+        // Slow-motion
+        public static MelonPreferences_Entry<bool> ReplaceSlowMo;
+        public static MelonPreferences_Entry<float> TimeScaleEntry;
 
-        /// <summary>Minimum real-time seconds between afterimages.</summary>
-        public static float AfterimageInterval => Mathf.Max(0.01f, _afterimageInterval.Value);
+        // Effects
+        public static MelonPreferences_Entry<int> ConfigVersion;
+        public static MelonPreferences_Entry<bool> Enabled;
+        public static MelonPreferences_Entry<bool> TriggerOnAnyTimeSlowdown;
+        public static MelonPreferences_Entry<bool> UseFallbackShader;
+        public static MelonPreferences_Entry<string> GradeColor;
+        public static MelonPreferences_Entry<float> GradeStrength;
+        public static MelonPreferences_Entry<float> GlowStrength;
+        public static MelonPreferences_Entry<float> ActivationFlash;
+        public static MelonPreferences_Entry<float> FadeInTime;
+        public static MelonPreferences_Entry<float> FadeOutTime;
+        public static MelonPreferences_Entry<bool> KeepPlayerColors;
+        public static MelonPreferences_Entry<bool> AfterimagesEnabled;
+        public static MelonPreferences_Entry<float> AfterimageInterval;
+        public static MelonPreferences_Entry<float> AfterimageLifetime;
+        public static MelonPreferences_Entry<float> AfterimageOpacity;
+        public static MelonPreferences_Entry<float> AfterimageHueSpeed;
+        public static MelonPreferences_Entry<float> AfterimageSaturation;
+        public static MelonPreferences_Entry<float> AfterimageMinMove;
+        public static MelonPreferences_Entry<float> AfterimageRevealDelay;
+        public static MelonPreferences_Entry<float> AfterimageHeadHideRadius;
+        public static MelonPreferences_Entry<float> AfterimageRevealDistance;
+        public static MelonPreferences_Entry<int> AfterimageMaxCount;
+        public static MelonPreferences_Entry<bool> AfterimageIncludeItems;
+        public static MelonPreferences_Entry<bool> AfterimageAdditive;
 
-        /// <summary>How far (meters) you have to move before another afterimage is left behind.</summary>
-        public static float AfterimageSpacing => Mathf.Max(0f, _afterimageSpacing.Value);
+        private static string _parsedColorSource;
+        private static Color _parsedColor = DefaultGradeColor;
 
-        public static float AfterimageOpacity => Mathf.Clamp(_afterimageOpacity.Value, 0.05f, 1f);
+        /// <summary>World speed while the Sandevistan is active (0.25 = 4x slower).</summary>
+        public static float TimeScale => Mathf.Clamp(TimeScaleEntry.Value, 0.05f, 0.95f);
 
-        /// <summary>Full hue cycles per real-time second. Low values = slow color drift.</summary>
-        public static float HueCycleSpeed => Mathf.Max(0f, _hueCycleSpeed.Value);
-
-        /// <summary>0 = unlimited. Afterimages never fade; this only exists as a safety valve for performance.</summary>
-        public static int MaxAfterimages => Mathf.Max(0, _maxAfterimages.Value);
-
-        public static bool ThumbstickActivation => _thumbstickActivation.Value;
+        public static Color GradeColorValue
+        {
+            get
+            {
+                string value = GradeColor.Value;
+                if (!ReferenceEquals(value, _parsedColorSource))
+                {
+                    _parsedColorSource = value;
+                    if (FxMath.TryParseHexColor(value, out var color))
+                    {
+                        _parsedColor = color;
+                    }
+                    else
+                    {
+                        MelonLogger.Warning("GradeColor '" + value + "' isn't a valid hex color, using the default neon green.");
+                        _parsedColor = DefaultGradeColor;
+                    }
+                }
+                return _parsedColor;
+            }
+        }
 
         public static void Setup()
         {
-            Category = MelonPreferences.CreateCategory("Sandevistan");
+            _timeCategory = MelonPreferences.CreateCategory("Sandevistan");
+            ReplaceSlowMo = _timeCategory.CreateEntry("ReplaceSlowMo", true, "Replace Slow-Mo", "On: the slow-mo button toggles the Sandevistan. Off: BONELAB's normal slow-mo (Quicksilver and the effects still apply).");
+            TimeScaleEntry = _timeCategory.CreateEntry("TimeScale", 0.25f, "Time Scale", "World speed while the Sandevistan is active (0.05-0.95). You stay at full speed.");
 
-            _timeScale = Category.CreateEntry("TimeScale", 0.25f, "Time Scale", "Time scale while the Sandevistan is active.");
-            _greenIntensity = Category.CreateEntry("GreenIntensity", 0.7f, "Green Intensity", "Strength of the green color correction (0-1).");
-            _afterimageInterval = Category.CreateEntry("AfterimageInterval", 0.08f, "Afterimage Interval", "Minimum real-time seconds between afterimages.");
-            _afterimageSpacing = Category.CreateEntry("AfterimageSpacing", 0.15f, "Afterimage Spacing", "Meters you must move before another afterimage spawns.");
-            _afterimageOpacity = Category.CreateEntry("AfterimageOpacity", 0.45f, "Afterimage Opacity", "Opacity of the afterimages (0.05-1).");
-            _hueCycleSpeed = Category.CreateEntry("HueCycleSpeed", 0.1f, "Hue Cycle Speed", "Full color cycles per second for the afterimages.");
-            _maxAfterimages = Category.CreateEntry("MaxAfterimages", 0, "Max Afterimages", "0 = unlimited. Oldest afterimages are removed past this count.");
-            _thumbstickActivation = Category.CreateEntry("ThumbstickActivation", true, "Thumbstick Activation", "Click both thumbsticks together to toggle the Sandevistan.");
+            _fxCategory = MelonPreferences.CreateCategory("SandevistanFX", "Sandevistan FX");
+            Enabled = _fxCategory.CreateEntry("Enabled", true, description: "Master switch for the visual effects.");
+            TriggerOnAnyTimeSlowdown = _fxCategory.CreateEntry("TriggerOnAnyTimeSlowdown", false, description: "Off: only the Sandevistan / BONELAB's slow-mo triggers the effects. On: any slowed time scale does (other slow-mo mods, Fusion, etc.).");
+            UseFallbackShader = _fxCategory.CreateEntry("UseFallbackShader", false, description: "Troubleshooting: turn on if the green grade or afterimages never show up. Uses a simpler built-in shader (grade becomes a green wash).");
+            GradeColor = _fxCategory.CreateEntry("GradeColor", "#3DFF73", description: "Hex color of the world grade.");
+            GradeStrength = _fxCategory.CreateEntry("GradeStrength", 0.7f, description: "0-1. How hard the world is pushed toward the grade color.");
+            GlowStrength = _fxCategory.CreateEntry("GlowStrength", 0.1f, description: "0-1. Extra neon green light added on top of the grade.");
+            ActivationFlash = _fxCategory.CreateEntry("ActivationFlash", 0.5f, description: "0-1. Brightness of the green flash when slow-mo kicks in.");
+            FadeInTime = _fxCategory.CreateEntry("FadeInTime", 0.12f, description: "Seconds (real time) for the grade to fade in.");
+            FadeOutTime = _fxCategory.CreateEntry("FadeOutTime", 0.15f, description: "Seconds (real time) for the grade to fade out. 0 = instant.");
+            KeepPlayerColors = _fxCategory.CreateEntry("KeepPlayerColors", true, description: "Keep your body, held weapons/items and holstered gear in their normal colors while the grade is up.");
+            AfterimagesEnabled = _fxCategory.CreateEntry("AfterimagesEnabled", true, description: "Rainbow afterimages while slow-mo is on.");
+            AfterimageInterval = _fxCategory.CreateEntry("AfterimageInterval", 0.06f, description: "Seconds (real time) between afterimages.");
+            AfterimageLifetime = _fxCategory.CreateEntry("AfterimageLifetime", DefaultLifetime, description: "Seconds (real time) each afterimage stays before disappearing instantly (no fade).");
+            AfterimageOpacity = _fxCategory.CreateEntry("AfterimageOpacity", 0.5f, description: "0-1. Opacity of each afterimage (constant until it disappears).");
+            AfterimageHueSpeed = _fxCategory.CreateEntry("AfterimageHueSpeed", DefaultHueSpeed, description: "How fast the afterimage color moves through the rainbow (cycles per second). Lower = slower color change.");
+            AfterimageSaturation = _fxCategory.CreateEntry("AfterimageSaturation", 0.85f, description: "0-1. Color saturation of the afterimages.");
+            AfterimageMinMove = _fxCategory.CreateEntry("AfterimageMinMove", 0.02f, description: "Meters your head, hands or held items must move before a new afterimage spawns.");
+            AfterimageRevealDelay = _fxCategory.CreateEntry("AfterimageRevealDelay", 0f, description: "Seconds an afterimage stays hidden after spawning. 0 = appears instantly.");
+            AfterimageHeadHideRadius = _fxCategory.CreateEntry("AfterimageHeadHideRadius", 0.45f, description: "Afterimage heads are hidden while your eyes are within this many meters of them, so they never block your view.");
+            AfterimageRevealDistance = _fxCategory.CreateEntry("AfterimageRevealDistance", 0f, description: "Meters you must move away from an afterimage before it appears. 0 = appears instantly (raise to e.g. 0.12 to keep afterimages off your own body).");
+            AfterimageMaxCount = _fxCategory.CreateEntry("AfterimageMaxCount", DefaultMaxCount, description: "Maximum afterimages alive at once. When a new one spawns at the limit, the oldest disappears instantly.");
+            AfterimageIncludeItems = _fxCategory.CreateEntry("AfterimageIncludeItems", true, description: "Include held and holstered weapons/items in the afterimages.");
+            AfterimageAdditive = _fxCategory.CreateEntry("AfterimageAdditive", false, description: "Off: solid see-through afterimages. On: glowing additive afterimages.");
+            ConfigVersion = _fxCategory.CreateEntry("ConfigVersion", 0, description: "Internal: used to update old settings files. Don't edit.");
+
+            Migrate();
         }
 
-        public static void SetupBoneMenu(Page parent)
+        private static void Migrate()
         {
-            parent.CreateFunction("Toggle Sandevistan", MenuColor, SandevistanController.Toggle);
+            if (ConfigVersion.Value >= CurrentConfigVersion)
+                return;
 
-            var page = parent.CreatePage("Sandevistan Settings", MenuColor, 0, true);
+            if (ConfigVersion.Value < 2)
+            {
+                AfterimageHueSpeed.Value = DefaultHueSpeed;
+                AfterimageMaxCount.Value = DefaultMaxCount;
+                AfterimageLifetime.Value = DefaultLifetime;
+            }
 
-            page.CreateBool("Thumbstick Activation", Color.white, _thumbstickActivation.Value, value => Save(_thumbstickActivation, value));
-            page.CreateFloat("Time Scale", Color.white, _timeScale.Value, 0.05f, 0.05f, 0.95f, value => Save(_timeScale, value));
-            page.CreateFloat("Green Intensity", MenuColor, _greenIntensity.Value, 0.05f, 0f, 1f, value => Save(_greenIntensity, value));
-            page.CreateFloat("Afterimage Interval", Color.white, _afterimageInterval.Value, 0.01f, 0.01f, 0.5f, value => Save(_afterimageInterval, value));
-            page.CreateFloat("Afterimage Spacing", Color.white, _afterimageSpacing.Value, 0.05f, 0f, 1f, value => Save(_afterimageSpacing, value));
-            page.CreateFloat("Afterimage Opacity", Color.white, _afterimageOpacity.Value, 0.05f, 0.05f, 1f, value => Save(_afterimageOpacity, value));
-            page.CreateFloat("Hue Cycle Speed", Color.white, _hueCycleSpeed.Value, 0.05f, 0f, 2f, value => Save(_hueCycleSpeed, value));
-            page.CreateInt("Max Afterimages (0 = inf)", Color.white, _maxAfterimages.Value, 25, 0, 5000, value => Save(_maxAfterimages, value));
+            if (ConfigVersion.Value < 3)
+            {
+                AfterimageRevealDelay.Value = 0f;
+                AfterimageRevealDistance.Value = 0f;
+            }
+
+            ConfigVersion.Value = CurrentConfigVersion;
+            Save();
         }
 
-        /// <summary>
-        /// The multiplicative filter used by the color correction. Green stays at 1, red/blue are pulled down.
-        /// </summary>
-        public static Color GetFilterColor()
+        public static void Save()
         {
-            float intensity = GreenIntensity;
-            return new Color(1f - 0.55f * intensity, 1f, 1f - 0.45f * intensity, 1f);
+            _timeCategory?.SaveToFile(false);
+            _fxCategory?.SaveToFile(false);
         }
 
-        private static void Save<T>(MelonPreferences_Entry<T> entry, T value)
+        public static void Set<T>(MelonPreferences_Entry<T> entry, T value)
         {
             entry.Value = value;
-            Category.SaveToFile(false);
+            Save();
         }
     }
 }
