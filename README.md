@@ -2,6 +2,8 @@
 
 A Cyberpunk: Edgerunners–style **Sandevistan** for BONELAB, built on top of Lakatrazz's **Quicksilver** mod (v1.7.0). The two are merged into one DLL: Quicksilver keeps you moving at full speed while time slows down, and the Sandevistan adds the time-stop, the look, and the afterimages.
 
+> This repo also contains **[Super Slow Mo](SuperSlowMo/README.md)**, a separate mod that replaces the slow-mo button with a world-only slow motion.
+
 ## Features
 
 ### Sandevistan (new)

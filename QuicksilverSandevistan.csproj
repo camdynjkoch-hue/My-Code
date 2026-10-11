@@ -19,6 +19,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- SuperSlowMo is a separate mod with its own project -->
+    <Compile Remove="SuperSlowMo\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- MelonLoader 0.6.x (net6) -->
     <Reference Include="$(BonelabPath)\MelonLoader\net6\MelonLoader.dll" Private="false" />
     <Reference Include="$(BonelabPath)\MelonLoader\net6\0Harmony.dll" Private="false" />

@@ -1,0 +1,9 @@
+{
+    "name": "SuperSlowMo",
+    "version_number": "1.0.0",
+    "website_url": "",
+    "description": "Replaces the slow-mo button: the whole world goes into super slow motion while you keep moving at full speed.",
+    "dependencies": [
+        "gnonme-BoneLib-3.1.1"
+    ]
+}
