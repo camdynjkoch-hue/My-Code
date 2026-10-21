@@ -1,0 +1,9 @@
+{
+    "name": "HeroStance",
+    "version_number": "1.0.0",
+    "website_url": "",
+    "description": "Spreads your avatar's legs into a hero stance whenever you stand still.",
+    "dependencies": [
+        "gnonme-BoneLib-3.1.1"
+    ]
+}
