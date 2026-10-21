@@ -1,24 +1,24 @@
 @echo off
-rem Builds HeroStance.dll and copies it into BONELAB\Mods.
-rem Usage: build.bat                      (default Steam install path)
-rem        build.bat "D:\Games\BONELAB"   (custom install path)
+rem Rebuilds HeroStance.dll. You only need this if you change the code;
+rem a ready-made HeroStance.dll is already in this folder.
+rem Usage: build.bat                      (also copies into the default Steam BONELAB\Mods if it exists)
+rem        build.bat "D:\Games\BONELAB"   (copies into that install instead)
 
 set "BONELAB=C:\Program Files (x86)\Steam\steamapps\common\BONELAB"
 if not "%~1"=="" set "BONELAB=%~1"
 
-if not exist "%BONELAB%\MelonLoader\Il2CppAssemblies" (
-    echo Could not find "%BONELAB%\MelonLoader\Il2CppAssemblies".
-    echo Install MelonLoader 0.6.x, launch BONELAB once, then run this again.
-    echo If BONELAB is somewhere else, run: build.bat "D:\path\to\BONELAB"
+dotnet build "%~dp0HeroStance.csproj" -c Release
+if errorlevel 1 (
+    echo Build failed.
     pause
     exit /b 1
 )
 
-dotnet build "%~dp0HeroStance.csproj" -c Release "/p:BonelabPath=%BONELAB%" /p:CopyToGame=true
-if errorlevel 1 (
-    echo Build failed.
-) else (
-    echo.
-    echo Built bin\Release\net6.0\HeroStance.dll and copied it to "%BONELAB%\Mods".
+copy /y "%~dp0bin\Release\net6.0\HeroStance.dll" "%~dp0HeroStance.dll" >nul
+echo Built HeroStance.dll
+
+if exist "%BONELAB%\Mods" (
+    copy /y "%~dp0HeroStance.dll" "%BONELAB%\Mods\" >nul
+    echo Copied it to "%BONELAB%\Mods"
 )
 pause

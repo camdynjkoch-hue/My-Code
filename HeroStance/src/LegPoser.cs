@@ -1,5 +1,7 @@
 using UnityEngine;
 
+using static HeroStance.MathUtil;
+
 namespace HeroStance
 {
     /// <summary>
@@ -60,14 +62,19 @@ namespace HeroStance
 
             public void CaptureBase()
             {
-                _basePosition = _bone.localPosition;
-                _baseRotation = _bone.localRotation;
+                if (_position)
+                    _basePosition = _bone.localPosition;
+                else
+                    _baseRotation = _bone.localRotation;
             }
 
             public void CaptureWritten()
             {
-                _writtenPosition = _bone.localPosition;
-                _writtenRotation = _bone.localRotation;
+                if (_position)
+                    _writtenPosition = _bone.localPosition;
+                else
+                    _writtenRotation = _bone.localRotation;
+
                 _hasWritten = true;
             }
 
@@ -155,14 +162,14 @@ namespace HeroStance
                 guard.CaptureBase();
 
             // Build the body's frame from the hips, flattened so the stance stays level when you lean
-            Vector3 up = Vector3.up;
-            Vector3 right = Vector3.ProjectOnPlane(_right.Upper.position - _left.Upper.position, up);
+            Vector3 up = Up;
+            Vector3 right = ProjectOnPlane(Sub(_right.Upper.position, _left.Upper.position), up);
 
-            if (right.sqrMagnitude < 1e-6f)
+            if (SqrMagnitude(right) < 1e-6f)
                 return;
 
-            right.Normalize();
-            Vector3 forward = Vector3.Cross(right, up);
+            right = Normalize(right);
+            Vector3 forward = Cross(right, up);
 
             float rise = PoseLeg(_left, right, forward, up, spread, kneeBend, footTurnOut);
             rise += PoseLeg(_right, right, forward, up, spread, kneeBend, footTurnOut);
@@ -170,7 +177,7 @@ namespace HeroStance
 
             // Spreading and bending lifts the feet, so drop the hips by the same amount to keep them on the floor
             if (keepFeetPlanted && rise > 0f)
-                Hips.position -= up * rise;
+                Hips.position = Sub(Hips.position, Scale(up, rise));
 
             foreach (var guard in _guards)
                 guard.CaptureWritten();
@@ -183,28 +190,28 @@ namespace HeroStance
             Quaternion footRotation = leg.Foot.rotation;
 
             // Swing the whole leg out to the side
-            RotateBoneToward(leg.Upper, leg.Foot.position - leg.Upper.position, right * leg.Side, spread);
+            RotateBoneToward(leg.Upper, Sub(leg.Foot.position, leg.Upper.position), Scale(right, leg.Side), spread);
 
             // Bend the knee in the direction the toes point, so the knees track over the feet
-            Quaternion turnOut = Quaternion.AngleAxis(footTurnOut * leg.Side, up);
-            Vector3 kneeForward = turnOut * forward;
+            Quaternion turnOut = AngleAxis(footTurnOut * leg.Side, up);
+            Vector3 kneeForward = Rotate(turnOut, forward);
 
-            RotateBoneToward(leg.Upper, leg.Lower.position - leg.Upper.position, kneeForward, kneeBend);
-            RotateBoneToward(leg.Lower, leg.Foot.position - leg.Lower.position, -kneeForward, kneeBend * 2f);
+            RotateBoneToward(leg.Upper, Sub(leg.Lower.position, leg.Upper.position), kneeForward, kneeBend);
+            RotateBoneToward(leg.Lower, Sub(leg.Foot.position, leg.Lower.position), Scale(kneeForward, -1f), kneeBend * 2f);
 
             // Keep the sole flat like it was, then point the toes outward
-            leg.Foot.rotation = turnOut * footRotation;
+            leg.Foot.rotation = Mul(turnOut, footRotation);
 
             return leg.Foot.position.y - footHeight;
         }
 
         private static void RotateBoneToward(Transform bone, Vector3 boneDirection, Vector3 target, float degrees)
         {
-            if (degrees <= 0f || boneDirection.sqrMagnitude < 1e-8f)
+            if (degrees <= 0f || SqrMagnitude(boneDirection) < 1e-8f)
                 return;
 
-            Vector3 rotated = Vector3.RotateTowards(boneDirection, target, degrees * Mathf.Deg2Rad, 0f);
-            bone.rotation = Quaternion.FromToRotation(boneDirection, rotated) * bone.rotation;
+            Vector3 rotated = RotateTowards(boneDirection, target, degrees);
+            bone.rotation = Mul(FromToRotation(boneDirection, rotated), bone.rotation);
         }
     }
 }

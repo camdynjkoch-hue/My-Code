@@ -13,25 +13,27 @@ When you stand still, your avatar's legs spread into a hero stance: feet planted
 
 ## Installing
 
-1. Install [MelonLoader 0.6.x](https://melonwiki.xyz) and [BoneLib 3.1.x](https://bonelab.thunderstore.io/package/gnonme/BoneLib/).
-2. Put `HeroStance.dll` in `BONELAB/Mods`.
+1. Install [MelonLoader](https://melonwiki.xyz) (0.6.0 or newer) and [BoneLib 3.x](https://bonelab.thunderstore.io/package/gnonme/BoneLib/).
+2. Copy **`HeroStance.dll`** from this folder into `BONELAB/Mods`.
+3. Start BONELAB. The MelonLoader console should show `Hero Stance ready. Stand still to strike a pose.`
 
-## Building the DLL
+## Building the DLL (only if you change the code)
 
-The DLL has to be compiled against the game files that MelonLoader generates from your own copy of BONELAB, so you build it on your own PC. It takes about a minute.
+You need the [.NET SDK](https://dotnet.microsoft.com/download) (6 or newer). You don't need BONELAB installed to build. The project compiles against public NuGet packages, which `dotnet` downloads automatically.
 
-1. Install the [.NET SDK](https://dotnet.microsoft.com/download) (version 6 or newer).
-2. Launch BONELAB once with MelonLoader installed, so that `BONELAB/MelonLoader/Il2CppAssemblies` exists. BoneLib must be in `BONELAB/Mods`.
-3. Double-click **`build.bat`** in this folder. It builds `HeroStance.dll` and copies it into `BONELAB/Mods` for you.
-   - If BONELAB isn't installed in the default Steam folder, run it from a terminal with your path: `build.bat "D:\SteamLibrary\steamapps\common\BONELAB"`
-
-Or build it by hand:
+Double-click **`build.bat`**, or run:
 
 ```bash
-dotnet build -c Release /p:BonelabPath="C:\Program Files (x86)\Steam\steamapps\common\BONELAB" /p:CopyToGame=true
+dotnet build -c Release
 ```
 
-The output is `bin/Release/net6.0/HeroStance.dll`.
+The output is `bin/Release/net6.0/HeroStance.dll`. `build.bat` also copies it next to the project and into `BONELAB/Mods`, if that folder exists. Use `build.bat "D:\path\to\BONELAB"` for a different install.
+
+### How it builds without the game
+
+- The Unity calls (`Transform`, `Animator`, `Time`) compile against Il2CppInterop-generated Unity 2021.3 assemblies from a public reference package. These are the same `UnityEngine.*` API that BONELAB exposes through MelonLoader. Those assemblies are only compiled against and are not shipped.
+- BoneLib (for finding your avatar and reading the thumbsticks) and BoneMenu are looked up by name at runtime. If anything is missing, the mod logs a warning instead of crashing.
+- Vector and rotation math is done in the mod's own code, so it doesn't depend on Unity helper methods the game may have stripped.
 
 ## Settings
 
@@ -52,7 +54,7 @@ For a wider, more dramatic stance, try a Leg Spread of 18–22° and a Knee Bend
 
 ## Troubleshooting
 
-- **Nothing happens.** Check the MelonLoader console for `Hero Stance` messages. If it says the avatar has no humanoid leg bones, that avatar can't be posed. Also make sure your mirror or third-person view is showing your avatar's legs.
+- **Nothing happens.** Check the MelonLoader console for `Hero Stance` messages. You should see `posing avatar '...'` after you spawn. If it says the avatar has no humanoid leg bones, that avatar can't be posed. If it says BoneLib isn't loaded, install BoneLib. Use a mirror to see your legs.
 - **The legs flicker or don't move.** The mod applies the pose in `LateUpdate`, right after the game poses your avatar. If an update to the game moves its leg posing to later in the frame, it can overwrite the stance. Please report it if this happens.
 - **The legs look too wide or too narrow.** Adjust Leg Spread in BoneMenu. Changes apply immediately.
 
@@ -61,6 +63,9 @@ For a wider, more dramatic stance, try a Leg Spread of 18–22° and a Knee Bend
 ```
 src/
   HeroStanceMod.cs       Main MelonMod: avatar tracking, idle detection, blending
-  LegPoser.cs            Bone math that poses the hips, legs and feet
-  HeroStanceSettings.cs  Preferences + BoneMenu
+  LegPoser.cs            Poses the hips, legs and feet
+  MathUtil.cs            Vector/quaternion math
+  BoneLibBridge.cs       Finds the player's avatar and thumbsticks through BoneLib
+  BoneMenuBridge.cs      Builds the BoneMenu page
+  HeroStanceSettings.cs  Preferences
 ```
